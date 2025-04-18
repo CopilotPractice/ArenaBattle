@@ -8,6 +8,10 @@
 #include "Physics/ABCollision.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/DamageEvents.h"
+#include "Components/WidgetComponent.h"
+#include "ChracterStat/ABCharacterStatComponent.h"
+#include "UI/ABWidgetComponent.h"
+#include "UI/ABHPBarWidget.h"
 
 // Sets default values
 AABCharacterBase::AABCharacterBase()
@@ -15,12 +19,40 @@ AABCharacterBase::AABCharacterBase()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//컴포넌트 설정
+	// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제.
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
+
+	// 무브먼트 설정.
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 720.0f, 0.0f);
+	GetCharacterMovement()->JumpZVelocity = 700.0f;
+
+	// 컴포넌트 설정.
+	GetCapsuleComponent()->SetCapsuleHalfHeight(88.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(CPROFILE_ABCAPSULE);
 
 	//메시의 콜리전은 NoCollision 설정 (주로 랙돌에 사용됨)
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
+	GetMesh()->SetRelativeLocationAndRotation(
+		FVector(0.0f, 0.0f, -88.0f),
+		FRotator(0.0f, -90.0f, 0.0f)
+	);
 
+	// 리소스 설정.
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> CharacterMesh(TEXT("/Game/InfinityBladeWarriors/Character/CompleteCharacters/SK_CharM_Cardboard.SK_CharM_Cardboard"));
+	if (CharacterMesh.Object)
+	{
+		GetMesh()->SetSkeletalMesh(CharacterMesh.Object);
+	}
+
+	// Animation Blueprint 설정.
+	static ConstructorHelpers::FClassFinder<UAnimInstance> CharacterAnim(TEXT("/Game/ArenaBattle/Animation/ABP_ABCharacter.ABP_ABCharacter_C"));
+	if (CharacterAnim.Class)
+	{
+		GetMesh()->SetAnimClass(CharacterAnim.Class);
+	}
 
 	static ConstructorHelpers::FObjectFinder<UABCharacterControlData> ShoulderDataRef(
 		TEXT("/Game/ArenaBattle/CharacterControl/ABC_Shoulder.ABC_Shoulder"));
@@ -52,6 +84,57 @@ AABCharacterBase::AABCharacterBase()
 	if (ComboActionDataRef.Object)
 	{
 		ComboActionData = ComboActionDataRef.Object;
+	}
+
+	//죽음 몽타주 에셋 설정
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Game/ArenaBattle/Animation/AM_Dead.AM_Dead"));
+	if (DeadMontageRef.Object)
+	{
+		DeadMontage = DeadMontageRef.Object;
+	}
+
+	// Stat Component
+	Stat = CreateDefaultSubobject<UABCharacterStatComponent>(TEXT("Stat"));
+	
+	HpBar = CreateDefaultSubobject<UABWidgetComponent>(TEXT("Widget"));
+
+	HpBar->SetupAttachment(GetMesh());
+	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
+
+	//사용할 위젯 클래스 정보 설정     => 클래스 정보를 얻어와야함 = _C
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(
+		TEXT("/Game/ArenaBattle/UI/WBP_HPBar.WBP_HPBar_C"));
+	if (HpBarWidgetRef.Class)
+	{
+		// 위젯 컴포넌트 위젯의 클래스 정보를 바탕으로 자체적으로 인스턴스 생성
+		HpBar->SetWidgetClass(HpBarWidgetRef.Class);
+
+		//2d모드 그리기
+		HpBar->SetWidgetSpace(EWidgetSpace::Screen);
+
+		//크기 설정
+		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
+
+		//콜리전 끄기
+		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	}
+}
+
+void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
+{
+	//필요한 위젯 정보 가져오기
+	UABHPBarWidget* HpBarWidget = Cast<UABHPBarWidget>(InUserWidget);
+	if (HpBarWidget)
+	{
+		// 최대 체력 값 설정.
+		HpBarWidget->SetMaxHp(Stat->GetMaxHp());
+
+		// HP 퍼센트가 제대로 계산 되도록 현재 체력 설정.
+		HpBarWidget->UpdateHpBar(Stat->GetCurrentHp());
+
+		// 체력 변경 이벤트(델리게이트)에 함수 및 객체 정보 등록.
+		Stat->OnHpChanged.AddUObject(HpBarWidget, &UABHPBarWidget::UpdateHpBar);
 	}
 }
 
@@ -151,10 +234,21 @@ float AABCharacterBase::TakeDamage(
 {
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	// @Task : 맞으면 바로 죽도록 처리
-
+	// 맞으면 바로 죽도록 처리
+	//SetDead();
+	
+	// 스탯 정보가 업데이트 되도록 데미지 전달
+	Stat->ApplyDamage(DamageAmount);
 
 	return DamageAmount;
+}
+
+void AABCharacterBase::PostInitializeComponents() //캐릭터가 생성되면 엔진이 실행
+{
+	Super::PostInitializeComponents();
+	
+	//죽었을 때 발행되는 이벤트에 SetDead 등록
+	Stat->OnHpZero.AddUObject(this, &AABCharacterBase::SetDead);
 }
 
 void AABCharacterBase::ProcessComboCommand()
@@ -290,5 +384,34 @@ void AABCharacterBase::ComboCheck()
 			// 콤보 공격 입력 플래그 초기화.
 			HasNextComboCommand = false;
 		}
+	}
+}
+
+void AABCharacterBase::SetDead()
+{
+	// 무브먼트 컴포넌트 끄기
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
+
+	//콜리전 끄기
+	SetActorEnableCollision(false);
+
+	PlayDeadAnimation();
+
+	// 죽었을 때 HpBar(위젯) 사라지도록 처리
+	HpBar->SetHiddenInGame(true); //컴포넌트 비활성화
+}
+
+void AABCharacterBase::PlayDeadAnimation()
+{
+	// 몽타주 재생.
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		// 이미 재생 중인 몽타주가 있다면, 모두 종료.
+		AnimInstance->StopAllMontages(0.0f);
+
+		// 죽음 몽타주 재생.
+		const float PlayRate = 1.0f;
+		AnimInstance->Montage_Play(DeadMontage, PlayRate);
 	}
 }

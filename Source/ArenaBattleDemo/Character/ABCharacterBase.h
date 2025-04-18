@@ -4,7 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "../Interface/ABAnimationAttackInterface.h"
+#include "Interface/ABAnimationAttackInterface.h"
+#include "Interface/ABCharacterWidgetInterface.h"
 #include "ABCharacterBase.generated.h"
 
 UENUM()
@@ -15,20 +16,28 @@ enum class ECharacterControlType : uint8
 };
 
 UCLASS()
-class ARENABATTLEDEMO_API AABCharacterBase : public ACharacter, public IABAnimationAttackInterface
+class ARENABATTLEDEMO_API AABCharacterBase :
+	public ACharacter, 
+	public IABAnimationAttackInterface, 
+	public IABCharacterWidgetInterface
 {
 	GENERATED_BODY()
 
 public:
 	// Sets default values for this character's properties
 	AABCharacterBase();
-
+	
+	virtual void SetupCharacterWidget(class UUserWidget* InUserWidget) override;
+	
 	virtual void SetCharacterControlData(const class UABCharacterControlData* InCharacterControlData);
 
 	// 공격 감지 함수 (애님 노티파이로부터 호출)
 	virtual void AttackHitCheck() override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	// 컴포넌트가 초기화된 이후에 호출 되는 함수
+	virtual void PostInitializeComponents() override;
 
 	// Combo Section.
 protected:
@@ -49,6 +58,13 @@ protected:
 
 	// 타이머 시간 사이에 입력이 들어왔는지 여부를 확인하는 함수.
 	void ComboCheck();
+protected:
+	
+	//죽음 상태 설정 함수
+	virtual void SetDead();
+
+	//죽는 애니메이션 재생 함수
+	void PlayDeadAnimation();
 
 protected:
 	UPROPERTY(EditAnywhere, Category = CharacterControl, meta = (AllowPrivateAccess = "true"))
@@ -57,6 +73,7 @@ protected:
 	// 공격 몽타주 애셋.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation, meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<class UAnimMontage> ComboActionMontage;
+
 
 	// 콤보 처리시 사용할 데이터 애셋.
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Attack, meta = (AllowPrivateAccess = "true"))
@@ -71,4 +88,21 @@ protected:
 
 	// 콤보 타이머 이전에 입력이 들어왔는지를 확인하는 불리언 변수.
 	bool HasNextComboCommand = false;
+
+	// Dead Section
+protected:
+	// 죽음 몽타주 에셋 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UAnimMontage> DeadMontage;
+
+	// 죽은 뒤에 액터를 제거하기 전까지 대기할 시간 값
+	float DeadEventDelayTime = 5.0f;
+
+	// Stat/Widget Section
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Stat, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UABCharacterStatComponent> Stat;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Widget, meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<class UABWidgetComponent> HpBar;
 };
