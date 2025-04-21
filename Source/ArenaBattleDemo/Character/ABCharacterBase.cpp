@@ -12,6 +12,11 @@
 #include "ChracterStat/ABCharacterStatComponent.h"
 #include "UI/ABWidgetComponent.h"
 #include "UI/ABHPBarWidget.h"
+#include "Item/ABWeaponItemData.h"
+#include "Components/SkeletalMeshComponent.h"
+
+//로그 카테고리 정의
+DEFINE_LOG_CATEGORY(LogABCharacter);
 
 // Sets default values
 AABCharacterBase::AABCharacterBase()
@@ -117,8 +122,20 @@ AABCharacterBase::AABCharacterBase()
 
 		//콜리전 끄기
 		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	}
+
+	// Item Secion.
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::EquipWeapon)));
+
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::DrinkPortion)));
+
+	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::ReadScroll)));
+
+	// 무기를 보여줄 컴포넌트 생성
+	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
+
+	// 메시 컴포넌트 하위로 계층을 설정하고, 이때 hand_rSocket 소켓에 부착.
+	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
 }
 
 void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
@@ -414,4 +431,37 @@ void AABCharacterBase::PlayDeadAnimation()
 		const float PlayRate = 1.0f;
 		AnimInstance->Montage_Play(DeadMontage, PlayRate);
 	}
+}
+
+void AABCharacterBase::TakeItem(UABItemData* InItemData)
+{
+	// 아이템 정보가 넘어오면 처리
+	if (InItemData)
+	{
+		//구조체가 가지고 있는 델리게이트에 접근해서 
+		TakeItemActions[(uint8)InItemData->Type].ItemDelegate.ExecuteIfBound(InItemData);
+	}
+
+}
+
+void AABCharacterBase::DrinkPortion(UABItemData* InItemData)
+{
+	UE_LOG(LogABCharacter, Log, TEXT("Drink Portion"));
+}
+
+void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
+{
+	//UE_LOG(LogABCharacter, Log, TEXT("Equip Portion"));
+	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
+	//변환에 성공했으면,
+	if (WeaponItemData)
+	{
+		//무기 컴포넌트에 해당 스켈레탈 메시 설정
+		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh);
+	}
+}
+
+void AABCharacterBase::ReadScroll(UABItemData* InItemData)
+{
+	UE_LOG(LogABCharacter, Log, TEXT("Read Scroll"));
 }
