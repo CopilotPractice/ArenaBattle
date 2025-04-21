@@ -456,8 +456,15 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 	//변환에 성공했으면,
 	if (WeaponItemData)
 	{
-		//무기 컴포넌트에 해당 스켈레탈 메시 설정
-		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh);
+		//무기 메시가 아직 로딩 안 된 경우 로드 처리
+		if (WeaponItemData->WeaponMesh.IsPending()) // 실제 살아 있는 UObject를 가르키고 있는지 아닌지 확인
+		{
+			WeaponItemData->WeaponMesh.LoadSynchronous(); // 동기 처리
+
+		}
+
+		// 무기 컴포넌트에 로드가 완료된 스켈레탈 메시 설정
+		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
 	}
 }
 
