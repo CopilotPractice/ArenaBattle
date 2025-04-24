@@ -8,14 +8,18 @@
 #include "Physics/ABCollision.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/DamageEvents.h"
+
+#include "CharacterStat/ABCharacterStatComponent.h"
 #include "Components/WidgetComponent.h"
-#include "ChracterStat/ABCharacterStatComponent.h"
+
 #include "UI/ABWidgetComponent.h"
-#include "UI/ABHPBarWidget.h"
+
+#include "UI/ABHpBarWidget.h"
 #include "Item/ABWeaponItemData.h"
+
 #include "Components/SkeletalMeshComponent.h"
 
-//로그 카테고리 정의
+// 로그 카테고리 정의.
 DEFINE_LOG_CATEGORY(LogABCharacter);
 
 // Sets default values
@@ -38,7 +42,7 @@ AABCharacterBase::AABCharacterBase()
 	GetCapsuleComponent()->SetCapsuleHalfHeight(88.0f);
 	GetCapsuleComponent()->SetCollisionProfileName(CPROFILE_ABCAPSULE);
 
-	//메시의 콜리전은 NoCollision 설정 (주로 랙돌에 사용됨)
+	// 메시의 콜리전은 NoCollision 설정 (주로 랙돌에 사용됨).
 	GetMesh()->SetCollisionProfileName(TEXT("NoCollision"));
 	GetMesh()->SetRelativeLocationAndRotation(
 		FVector(0.0f, 0.0f, -88.0f),
@@ -58,6 +62,7 @@ AABCharacterBase::AABCharacterBase()
 	{
 		GetMesh()->SetAnimClass(CharacterAnim.Class);
 	}
+	
 
 	static ConstructorHelpers::FObjectFinder<UABCharacterControlData> ShoulderDataRef(
 		TEXT("/Game/ArenaBattle/CharacterControl/ABC_Shoulder.ABC_Shoulder"));
@@ -79,48 +84,51 @@ AABCharacterBase::AABCharacterBase()
 		);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> ComboActionMontageRef (TEXT("/Game/ArenaBattle/Animation/AM_ComboAttack.AM_ComboAttack"));
+	// 콤보 액션 몽타주 애셋 설정.
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> ComboActionMontageRef(TEXT("/Game/ArenaBattle/Animation/AM_ComboAttack.AM_ComboAttack"));
 	if (ComboActionMontageRef.Object)
 	{
 		ComboActionMontage = ComboActionMontageRef.Object;
 	}
 
+	// 콤보 액션 데이터 애셋 설정.
 	static ConstructorHelpers::FObjectFinder<UABComboActionData> ComboActionDataRef(TEXT("/Game/ArenaBattle/ComboAction/ABA_ComboAction.ABA_ComboAction"));
 	if (ComboActionDataRef.Object)
 	{
 		ComboActionData = ComboActionDataRef.Object;
 	}
 
-	//죽음 몽타주 에셋 설정
+	// 죽음 몽타주 애셋 설정.
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> DeadMontageRef(TEXT("/Game/ArenaBattle/Animation/AM_Dead.AM_Dead"));
 	if (DeadMontageRef.Object)
 	{
 		DeadMontage = DeadMontageRef.Object;
 	}
 
-	// Stat Component
+	// Stat Component.
 	Stat = CreateDefaultSubobject<UABCharacterStatComponent>(TEXT("Stat"));
-	
+
+	// Widget Component.
 	HpBar = CreateDefaultSubobject<UABWidgetComponent>(TEXT("Widget"));
 
+	// 컴포넌트 계층 설정 및 상대 위치 설정(머리 위로 보일 수 있게).
 	HpBar->SetupAttachment(GetMesh());
 	HpBar->SetRelativeLocation(FVector(0.0f, 0.0f, 200.0f));
 
-	//사용할 위젯 클래스 정보 설정     => 클래스 정보를 얻어와야함 = _C
-	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(
-		TEXT("/Game/ArenaBattle/UI/WBP_HPBar.WBP_HPBar_C"));
+	// 사용할 위젯 클래스 정보 설정.
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetRef(TEXT("/Game/ArenaBattle/UI/WBP_HpBar.WBP_HpBar_C"));
 	if (HpBarWidgetRef.Class)
 	{
-		// 위젯 컴포넌트 위젯의 클래스 정보를 바탕으로 자체적으로 인스턴스 생성
+		// 위젯 컴포넌트는 위젯의 클래스 정보를 바탕으로 자체적으로 인스턴스를 생성함.
 		HpBar->SetWidgetClass(HpBarWidgetRef.Class);
-
-		//2d모드 그리기
+		
+		// 2D 모드로 그리기.
 		HpBar->SetWidgetSpace(EWidgetSpace::Screen);
 
-		//크기 설정
+		// 크기 설정.
 		HpBar->SetDrawSize(FVector2D(150.0f, 15.0f));
 
-		//콜리전 끄기
+		// 콜리전 끄기.
 		HpBar->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 
@@ -131,28 +139,11 @@ AABCharacterBase::AABCharacterBase()
 
 	TakeItemActions.Add(FTakeItemDelegateWrapper(FOnTakeItemDelegate::CreateUObject(this, &AABCharacterBase::ReadScroll)));
 
-	// 무기를 보여줄 컴포넌트 생성
+	// 무기를 보여줄 컴포넌트 생성.
 	Weapon = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon"));
-
+	
 	// 메시 컴포넌트 하위로 계층을 설정하고, 이때 hand_rSocket 소켓에 부착.
 	Weapon->SetupAttachment(GetMesh(), TEXT("hand_rSocket"));
-}
-
-void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
-{
-	//필요한 위젯 정보 가져오기
-	UABHPBarWidget* HpBarWidget = Cast<UABHPBarWidget>(InUserWidget);
-	if (HpBarWidget)
-	{
-		// 최대 체력 값 설정.
-		HpBarWidget->SetMaxHp(Stat->GetMaxHp());
-
-		// HP 퍼센트가 제대로 계산 되도록 현재 체력 설정.
-		HpBarWidget->UpdateHpBar(Stat->GetCurrentHp());
-
-		// 체력 변경 이벤트(델리게이트)에 함수 및 객체 정보 등록.
-		Stat->OnHpChanged.AddUObject(HpBarWidget, &UABHPBarWidget::UpdateHpBar);
-	}
 }
 
 void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* InCharacterControlData)
@@ -166,50 +157,76 @@ void AABCharacterBase::SetCharacterControlData(const UABCharacterControlData* In
 	GetCharacterMovement()->RotationRate = InCharacterControlData->RotationRate;
 }
 
+void AABCharacterBase::SetupCharacterWidget(UUserWidget* InUserWidget)
+{
+	// 필요한 위젯 정보 가져오기.
+	UABHpBarWidget* HpBarWidget = Cast<UABHpBarWidget>(InUserWidget);
+	if (HpBarWidget)
+	{
+		// 최대 체력 값 설정.
+		//HpBarWidget->SetMaxHp(Stat->GetMaxHp());
+		HpBarWidget->SetMaxHp(Stat->GetTotalStat().MaxHp);
+
+		// HP 퍼센트가 제대로 계산 되도록 현재 체력 설정.
+		HpBarWidget->UpdateHpBar(Stat->GetCurrentHp());
+
+		// 체력 변경 이벤트(델리게이트)에 함수 및 객체 정보 등록.
+		Stat->OnHpChanged.AddUObject(HpBarWidget, &UABHpBarWidget::UpdateHpBar);
+	}
+}
+
 void AABCharacterBase::AttackHitCheck()
 {
-	//공격 판정 진행
+	// 공격 판정 진행.
 	//UE_LOG(LogTemp, Log, TEXT("AttackHitCheck !!"));
 
-	// 충돌 시작 지점 계산
-	//캐릭터 몸통에서 약간 앞으로(캡슐의 반지름 만큼) 설정
-	FVector Start = GetActorLocation() + GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius();
+	// 충돌 시작 지점 계산.
+	// 캐릭터 몸통에서 약간 앞으로(캡슐의 반지름 만큼) 설정.
+	FVector Start
+		= GetActorLocation()
+		+ GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius();
 
-	//공격 거리
-	const float AttackRange = 50.0f;
-	FVector End = Start + GetActorForwardVector() * AttackRange;
+	// 공격 거리.
+	//const float AttackRange = 50.0f;
+	const float AttackRange = Stat->GetTotalStat().AttackRange;
+	FVector End
+		= Start + GetActorForwardVector() * AttackRange;
 
-	// SCENE_QUERY_STAT : 언리얼에서 지원하는 분석 툴에 태그를 추가
-	// 두번째 인자 : 복잡한 형태의 충돌체를 감지할 지 여부
-	// 세번째 인자 : 무시할 액터 목록
-	FCollisionQueryParams Params(SCENE_QUERY_STAT(Attack), false, this);
+	// SCENE_QUERY_STAT: 언리얼에서 지원하는 분석 툴에 태그를 추가.
+	// 두번째 인자: 복잡한 형태의 충돌체를 감지할 지 여부.
+	// 세번째 인자: 무시할 액터 목록.
+	FCollisionQueryParams Params(
+		SCENE_QUERY_STAT(Attack),
+		false,
+		this
+	);
 
-	// 트레이스에 사용할 구체의 반지름
+	// 트레이스에 사용할 구체의 반지름.
 	const float AttackRadius = 50.0f;
 
-	// 트레이스를 활용하여 충돌 검사
+	// 트레이스를 활용해 충돌 검사.
 	FHitResult OutHitResult;
 	bool HitDetected = GetWorld()->SweepSingleByChannel(
 		OutHitResult,
 		Start,
 		End,
-		FQuat::Identity, //쿼터니언(사원수)에서 회전을 안 한 상태
+		FQuat::Identity,
 		CCHANNEL_ABACTION,
 		FCollisionShape::MakeSphere(AttackRadius),
 		Params
 	);
 
-	//충돌 감지된 경우의 처리
+	// 충돌 감지된 경우의 처리.
 	if (HitDetected)
 	{
-		//데미지 양
-		const float AttackDamage = 30.0f;
+		// 대미지 양.
+		//const float AttackDamage = 100.0f;
+		const float AttackDamage = Stat->GetTotalStat().Attack;
 
-		//데미지 이벤트
+		// 대미지 이벤트.
 		FDamageEvent DamageEvent;
 
-		// 데미지 전달 
-		//. 구조체 접근, -> 클래스 접근
+		// 대미지 전달.
 		OutHitResult.GetActor()->TakeDamage(
 			AttackDamage,
 			DamageEvent,
@@ -218,53 +235,56 @@ void AABCharacterBase::AttackHitCheck()
 		);
 	}
 
-	//충돌 디버그(시각적으로 확인할 수 있도록)
+	// 충돌 디버그 (시각적으로 확인할 수 있도록).
 #if ENABLE_DRAW_DEBUG
 
-	//캡슐 중심 위치
+	// 캡슐의 중심 위치.
 	FVector CapsuleOrigin = Start + (End - Start) * 0.5f;
 
-	//캡슐 높이 절반 값
+	// 캡슐 높이 절반 값.
 	float CapsuleHalfHeight = AttackRange * 0.5f;
 
-	//표시할 색상 (안 맞았으면 빨강, 맞았으면 초록)
+	// 표시할 색상 (안 맞았으면 빨강, 맞았으면 초록).
 	FColor DrawColor = HitDetected ? FColor::Green : FColor::Red;
 
-	//캡슐 그리기
-	DrawDebugCapsule(GetWorld(),
+	// 캡슐 그리기.
+	DrawDebugCapsule(
+		GetWorld(),
 		CapsuleOrigin,
 		CapsuleHalfHeight,
 		AttackRadius,
-		FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(), // 오일러 회전 행렬에서 쿼터니언으로 변환
+		FRotationMatrix::MakeFromZ(GetActorForwardVector()).ToQuat(),
 		DrawColor,
 		false,
-		5.0f //선을 얼마나 오래 그릴지
+		5.0f
 	);
+
 #endif
+
 }
 
 float AABCharacterBase::TakeDamage(
-	float DamageAmount, 
-	FDamageEvent const& DamageEvent, 
-	AController* EventInstigator, 
+	float DamageAmount,
+	FDamageEvent const& DamageEvent,
+	AController* EventInstigator,
 	AActor* DamageCauser)
 {
 	Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
-	// 맞으면 바로 죽도록 처리
+	// 맞으면 바로 죽도록 처리.
 	//SetDead();
-	
-	// 스탯 정보가 업데이트 되도록 데미지 전달
+
+	// 스탯 정보가 업데이트 되도록 대미지 전달.
 	Stat->ApplyDamage(DamageAmount);
 
 	return DamageAmount;
 }
 
-void AABCharacterBase::PostInitializeComponents() //캐릭터가 생성되면 엔진이 실행
+void AABCharacterBase::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	
-	//죽었을 때 발행되는 이벤트에 SetDead 등록
+
+	// 죽었을 때 발행되는 이벤트에 SetDead 함수 등록.
 	Stat->OnHpZero.AddUObject(this, &AABCharacterBase::SetDead);
 }
 
@@ -305,7 +325,8 @@ void AABCharacterBase::ComboActionBegin()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
-		const float AttackSpeedRate = 1.0f;
+		//const float AttackSpeedRate = 1.0f;
+		const float AttackSpeedRate = Stat->GetTotalStat().AttackSpeed;
 		AnimInstance->Montage_Play(ComboActionMontage, AttackSpeedRate);
 
 		// 몽타주 재생이 시작되면, 재생이 종료될 때 호출되는 델리게이트에 등록.
@@ -341,7 +362,8 @@ void AABCharacterBase::SetComboCheckTimer()
 	ensure(ComboActionData->EffectiveFrameCount.IsValidIndex(ComboIndex));
 
 	// 콤보 시간 계산(확인).
-	const float AttackSpeedRate = 1.0f;
+	//const float AttackSpeedRate = 1.0f;
+	const float AttackSpeedRate = Stat->GetTotalStat().AttackSpeed;
 	float ComboEffectiveTime = (ComboActionData->EffectiveFrameCount[ComboIndex] /
 		ComboActionData->FrameRate) / AttackSpeedRate;
 
@@ -355,10 +377,10 @@ void AABCharacterBase::SetComboCheckTimer()
 		// 네번째: 타이머 시간.
 		// 다섯번째: 반복여부.
 		GetWorld()->GetTimerManager().SetTimer(
-			ComboTimerHandle, 
-			this, 
-			&AABCharacterBase::ComboCheck, 
-			ComboEffectiveTime, 
+			ComboTimerHandle,
+			this,
+			&AABCharacterBase::ComboCheck,
+			ComboEffectiveTime,
 			false
 		);
 	}
@@ -406,16 +428,17 @@ void AABCharacterBase::ComboCheck()
 
 void AABCharacterBase::SetDead()
 {
-	// 무브먼트 컴포넌트 끄기
+	// 무브먼트 컴포넌트 끄기.
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_None);
 
-	//콜리전 끄기
+	// 콜리전 끄기.
 	SetActorEnableCollision(false);
 
+	// 죽는 애니메이션 재생.
 	PlayDeadAnimation();
 
-	// 죽었을 때 HpBar(위젯) 사라지도록 처리
-	HpBar->SetHiddenInGame(true); //컴포넌트 비활성화
+	// 죽었을 때 HpBar(위젯) 사라지도록 처리.
+	HpBar->SetHiddenInGame(true);
 }
 
 void AABCharacterBase::PlayDeadAnimation()
@@ -435,13 +458,11 @@ void AABCharacterBase::PlayDeadAnimation()
 
 void AABCharacterBase::TakeItem(UABItemData* InItemData)
 {
-	// 아이템 정보가 넘어오면 처리
+	// 아이템 정보가 넘어오면 처리.
 	if (InItemData)
 	{
-		//구조체가 가지고 있는 델리게이트에 접근해서 
 		TakeItemActions[(uint8)InItemData->Type].ItemDelegate.ExecuteIfBound(InItemData);
 	}
-
 }
 
 void AABCharacterBase::DrinkPortion(UABItemData* InItemData)
@@ -451,24 +472,39 @@ void AABCharacterBase::DrinkPortion(UABItemData* InItemData)
 
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 {
-	//UE_LOG(LogABCharacter, Log, TEXT("Equip Portion"));
+	//UE_LOG(LogABCharacter, Log, TEXT("Equip Weapon"));
+	// 함수에 전달된 아이템 데이터 애셋을 무기 데이터로 변환.
 	UABWeaponItemData* WeaponItemData = Cast<UABWeaponItemData>(InItemData);
-	//변환에 성공했으면,
+	
+	// 변환에 성공했으면,
 	if (WeaponItemData)
 	{
-		//무기 메시가 아직 로딩 안 된 경우 로드 처리
-		if (WeaponItemData->WeaponMesh.IsPending()) // 실제 살아 있는 UObject를 가르키고 있는지 아닌지 확인
+		// 무기 메시가 아직 로딩 안된 경우, 로드 처리.
+		if (WeaponItemData->WeaponMesh.IsPending())
 		{
-			WeaponItemData->WeaponMesh.LoadSynchronous(); // 동기 처리
-
+			WeaponItemData->WeaponMesh.LoadSynchronous();
 		}
 
-		// 무기 컴포넌트에 로드가 완료된 스켈레탈 메시 설정
+		// 무기 컴포넌트에 로드가 완료된 스켈레탈 메시 설정.
 		Weapon->SetSkeletalMesh(WeaponItemData->WeaponMesh.Get());
+
+		// 무기 아이템 데이터가 가지는 부가 스탯 설정.
+		Stat->SetModifierStat(WeaponItemData->ModifierStat);
+
 	}
 }
 
 void AABCharacterBase::ReadScroll(UABItemData* InItemData)
 {
 	UE_LOG(LogABCharacter, Log, TEXT("Read Scroll"));
+}
+
+int32 AABCharacterBase::GetLevel() const
+{
+	return Stat->GetCurrentLevel();
+}
+
+void AABCharacterBase::SetLevel(int32 InNewLevel)
+{
+	Stat->SetLevelStat(InNewLevel);
 }

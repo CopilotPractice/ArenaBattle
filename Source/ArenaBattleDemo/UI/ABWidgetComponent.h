@@ -15,7 +15,6 @@ class ARENABATTLEDEMO_API UABWidgetComponent : public UWidgetComponent
 	GENERATED_BODY()
 	
 protected:
-	// 위젯이 초기화 될 때 호출되는 함수
+	// 위젯이 초기화 될 때 호출되는 함수.
 	virtual void InitWidget() override;
-
 };
