@@ -8,7 +8,7 @@ public class ArenaBattleDemo : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 
-		PublicIncludePaths.Add("ArenaBattleDemo");
+		PublicIncludePaths.Add("ArenaBattleDemo"); 
 	
 		PublicDependencyModuleNames.AddRange(new string[] { 
 			"Core", 
@@ -16,7 +16,11 @@ public class ArenaBattleDemo : ModuleRules
 			"Engine", 
 			"InputCore", 
 			"EnhancedInput", 
-			"UMG" 
+			"UMG",
+			"NavigationSystem",
+			"AIModule",
+			"GameplayTasks"
+
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
