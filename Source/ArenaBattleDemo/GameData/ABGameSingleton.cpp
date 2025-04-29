@@ -3,7 +3,7 @@
 
 #include "GameData/ABGameSingleton.h"
 
-DEFINE_LOG_CATEGORY(LogABGameSingleton); // Log 찍는거 확장
+DEFINE_LOG_CATEGORY(LogABGameSingleton);
 
 UABGameSingleton::UABGameSingleton()
 {

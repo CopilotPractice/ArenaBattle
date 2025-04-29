@@ -1,7 +1,8 @@
-ï»¿// Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "AI/BTTask_FindPatrolPos.h"
+
 #include "ABAI.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
@@ -17,51 +18,51 @@ EBTNodeResult::Type UBTTask_FindPatrolPos::ExecuteTask(
 {
     EBTNodeResult::Type Result = Super::ExecuteTask(OwnerComp, NodeMemory);
 
-    // ë„¤ë¹„ê²Œì´ì…˜ ì‹œìŠ¤í…œì„ ì‚¬ìš©í•´ ëœë¤ìœ¼ë¡œ ì´ë™ ê°€ëŠ¥í•œ ìœ„ì¹˜ë¥¼ êµ¬í•œ ë’¤ì—
-    // ë¸”ë™ë³´ë“œì— ì •ì°° ìœ„ì¹˜ë¡œ ì €ì¥.
+    // ³×ÀÌ°ÔÀÌ¼Ç ½Ã½ºÅÛÀ» »ç¿ëÇØ ·£´ıÀ¸·Î ÀÌµ¿ °¡´ÉÇÑ À§Ä¡¸¦ ±¸ÇÑ µÚ¿¡
+    // ºí·¢º¸µå¿¡ Á¤Âû À§Ä¡·Î ÀúÀå.
 
-    // ë¹„í—¤ì´ë¹„ì–´íŠ¸ë¦¬ë¥¼ ì†Œìœ í•˜ëŠ” ì»¨íŠ¸ë¡¤ëŸ¬ê°€ ì œì–´í•˜ëŠ” í° ì •ë³´ ê°€ì ¸ì˜¤ê¸°.
+    // ºñÇìÀÌºñ¾îÆ®¸®¸¦ ¼ÒÀ¯ÇÏ´Â ÄÁÆ®·Ñ·¯°¡ Á¦¾îÇÏ´Â Æù Á¤º¸ °¡Á®¿À±â.
     APawn* ControllingPawn = OwnerComp.GetAIOwner()->GetPawn();
     if (!ControllingPawn)
     {
         return EBTNodeResult::Failed;
     }
 
-    // ë‚´ë¹„ê²Œì´ì…˜ ì‹œìŠ¤í…œì„ ì‚¬ìš©í•˜ê¸° ìœ„í•œ í¬ì¸í„° ê°€ì ¸ì˜¤ê¸°.
+    // ³»ºñ°ÔÀÌ¼Ç ½Ã½ºÅÛÀ» »ç¿ëÇÏ±â À§ÇÑ Æ÷ÀÎÅÍ °¡Á®¿À±â.
     UNavigationSystemV1* NavSystem
         = UNavigationSystemV1::GetNavigationSystem(
             ControllingPawn->GetWorld()
         );
 
-    // ìœ íš¨í•œì§€ ê²€ì‚¬.
+    // À¯È¿ÇÑÁö °Ë»ç.
     if (!NavSystem)
     {
         return EBTNodeResult::Failed;
     }
 
-    //ì¸í„°í˜ì´ìŠ¤ë¡œ í˜•ë³€í™˜
+    // ÀÎÅÍÆäÀÌ½º·Î Çüº¯È¯.
     IABCharacterAIInterface* AIPawn = Cast<IABCharacterAIInterface>(ControllingPawn);
 
+    // º¯È¯¿¡ ½ÇÆĞÇÏ¸é ½ÇÆĞ ¹İÈ¯.
     if (!AIPawn)
     {
         return EBTNodeResult::Failed;
     }
 
-
-    // í°ì´ ìƒì„±ëœ ì´ˆê¸° ìœ„ì¹˜ ê°€ì ¸ì˜¤ê¸°.
+    // ÆùÀÌ »ı¼ºµÈ ÃÊ±â À§Ä¡ °¡Á®¿À±â.
     FVector Origin
         = OwnerComp.GetBlackboardComponent()->GetValueAsVector(
             BBKEY_HOMEPOS
         );
 
-    //AIPawnìœ¼ë¡œ ë¶€í„° ì •ì°° ë°˜ê²½ ë°›ì•„ì˜¤ê¸°
+    // AIPawnÀ¸·ÎºÎÅÍ Á¤Âû ¹İ°æ ¹Ş¾Æ¿À±â.
     float PatrolRadius = AIPawn->GetAIPatrolRadius();
 
-    // ê²°ê³¼ ì €ì¥ì„ ìœ„í•œ ë³€ìˆ˜.
+    // °á°ú ÀúÀåÀ» À§ÇÑ º¯¼ö.
     FNavLocation NextPatrolPos;
     if (NavSystem->GetRandomPointInNavigableRadius(Origin, PatrolRadius, NextPatrolPos))
     {
-        // ëœë¤ ìœ„ì¹˜ê°€ ì˜ ì„¤ì •ë˜ë©´, ë¸”ë™ë³´ë“œì— ì €ì¥.
+        // ·£´ı À§Ä¡°¡ Àß ¼³Á¤µÇ¸é, ºí·¢º¸µå¿¡ ÀúÀå.
         //OwnerComp.GetBlackboardComponent()->SetValueAsVector(
         //    BBKEY_PATROLPOS, NextPatrolPos
         //);

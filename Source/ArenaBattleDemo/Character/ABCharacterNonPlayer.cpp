@@ -3,16 +3,19 @@
 
 #include "Character/ABCharacterNonPlayer.h"
 #include "Engine/AssetManager.h"
-#include "AI//ABAIController.h"
+#include "AI/ABAIController.h"
 #include "CharacterStat/ABCharacterStatComponent.h"
 
 AABCharacterNonPlayer::AABCharacterNonPlayer()
 {
 	// 시작할 때 메시 컴포넌트 끄기.
 	GetMesh()->SetHiddenInGame(true);
+
+	// AIController 클래스 설정.
 	AIControllerClass = AABAIController::StaticClass();
 
-	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned; // 
+	// 빙의 모드 설정.
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned;
 }
 
 void AABCharacterNonPlayer::PostInitializeComponents()
@@ -43,6 +46,14 @@ void AABCharacterNonPlayer::PostInitializeComponents()
 void AABCharacterNonPlayer::SetDead()
 {
 	Super::SetDead();
+
+	// AI 명령 전달 중지.
+	//Controller
+	AABAIController* ABAIController = Cast<AABAIController>(GetController());
+	if (ABAIController)
+	{
+		ABAIController->StopAI();
+	}
 
 	// 타이머를 사용해 액터 제거.
 	FTimerHandle DeadTimerHandle;
@@ -87,17 +98,16 @@ void AABCharacterNonPlayer::NPCMeshLoadCompleted()
 
 float AABCharacterNonPlayer::GetAIPatrolRadius()
 {
-	return 800.0f; // 775정도 되는데, 탐지 거리가 중심원이기 때문에, 사각형인 바닥에 구석에 사각지대가 생기기 때문에 좀 더 크게
+	return 800.0f;
 }
 
 float AABCharacterNonPlayer::GetAIDetectRange()
 {
-	return 400.0f; // 4m 정도 시야
+	return 400.0f;
 }
 
 float AABCharacterNonPlayer::GetAIAttackRange()
 {
-	//공격범위 판정시 캡슐
 	return Stat->GetTotalStat().AttackRange + Stat->GetAttackRadius() * 2;
 }
 
@@ -106,22 +116,22 @@ float AABCharacterNonPlayer::GetAITurnSpeed()
 	return 2.0f;
 }
 
-void AABCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinised)
+void AABCharacterNonPlayer::SetAIAttackDelegeate(
+	const FAICharacterAttackFinished& InOnAttackFinished)
 {
-	OnAttackFinished = InOnAttackFinised;
-
+	OnAttackFinished = InOnAttackFinished;
 }
 
 void AABCharacterNonPlayer::AttackByAI()
 {
-	// 공격 진행을 위한 콤보 실행 함수 호출
+	// 공격 진행을 위한 콤보 실행 함수 호출.
 	ProcessComboCommand();
-	
 }
 
 void AABCharacterNonPlayer::NotifyComboActionEnd()
 {
-	Super::NotifyComboActionEnd(); // 비어 있어서 사실 super키워드 필요없긴함
+	Super::NotifyComboActionEnd();
 
+	// 전달 받은 델리게이트 실행.
 	OnAttackFinished.ExecuteIfBound();
 }

@@ -13,6 +13,7 @@ UCLASS()
 class ARENABATTLEDEMO_API UBTService_Detect : public UBTService
 {
 	GENERATED_BODY()
+	
 public:
 	UBTService_Detect();
 

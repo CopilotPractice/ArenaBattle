@@ -14,7 +14,7 @@ class UABCharacterAIInterface : public UInterface
 };
 
 // 공격 종료 델리게이트.
-DECLARE_DELEGATE(FAICharacterAttackFinished)
+DECLARE_DELEGATE(FAICharacterAttackFinished);
 
 /**
  * 
@@ -26,16 +26,16 @@ class ARENABATTLEDEMO_API IABCharacterAIInterface
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 
-	//NPC 캐릭터가 필수적으로 구현해야할 함수
+	// NPC 캐릭터가 필수적으로 구현해야할 함수.
 	virtual float GetAIPatrolRadius() = 0;
 	virtual float GetAIDetectRange() = 0;
 	virtual float GetAIAttackRange() = 0;
 	virtual float GetAITurnSpeed() = 0;
 
+	// 캐릭터에서 델리게이트를 넘길 때 사용할 함수.
+	virtual void SetAIAttackDelegeate(
+		const FAICharacterAttackFinished& InOnAttackFinished) = 0;
 
-	// 캐릭터에서 델리게이트를 넘길 때 사용할 함수
-	virtual void SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinised) = 0;
-	
-	//AI 공격할 때 사용할 함수
+	// AI가 공격을 할 때 사용할 함수.
 	virtual void AttackByAI() = 0;
 };

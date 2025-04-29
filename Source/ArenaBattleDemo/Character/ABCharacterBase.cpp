@@ -15,7 +15,7 @@
 #include "UI/ABWidgetComponent.h"
 
 #include "UI/ABHpBarWidget.h"
-#include "Item/ABWeaponItemData.h"
+#include "Item/ABItems.h"
 
 #include "Components/SkeletalMeshComponent.h"
 
@@ -28,7 +28,7 @@ AABCharacterBase::AABCharacterBase()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	//// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제.
+	// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
@@ -287,6 +287,9 @@ void AABCharacterBase::PostInitializeComponents()
 
 	// 죽었을 때 발행되는 이벤트에 SetDead 함수 등록.
 	Stat->OnHpZero.AddUObject(this, &AABCharacterBase::SetDead);
+
+	// 스탯이 변경됐을 때 발행되는 이벤트에 함수 등록.
+	Stat->OnStatChanged.AddUObject(this, &AABCharacterBase::ApplyStat);
 }
 
 void AABCharacterBase::ProcessComboCommand()
@@ -353,8 +356,8 @@ void AABCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 	// 캐릭터 무브먼트 컴포넌트 모드 복구.
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 
-	//공격이 끝나면 NotifyComboActionEnd() 함수 호출
-	NotifyComboActionEnd(); //현재 클래스에서는 구현 안 되어있지만, override하면 기능추가 가능
+	// 공격이 끝나면 NotifyComboActionEnd 함수 호출.
+	NotifyComboActionEnd();
 }
 
 void AABCharacterBase::NotifyComboActionEnd()
@@ -475,7 +478,15 @@ void AABCharacterBase::TakeItem(UABItemData* InItemData)
 
 void AABCharacterBase::DrinkPortion(UABItemData* InItemData)
 {
-	UE_LOG(LogABCharacter, Log, TEXT("Drink Portion"));
+	//UE_LOG(LogABCharacter, Log, TEXT("Drink Portion"));
+
+	// 아이템 처리를 위한 형변환.
+	UABPotionItemData* PotionItemData = Cast<UABPotionItemData>(InItemData);
+	if (PotionItemData)
+	{
+		// 스탯 컴포넌트에 체력 회복 처리.
+		Stat->HealHp(PotionItemData->HealAmount);
+	}
 }
 
 void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
@@ -504,7 +515,14 @@ void AABCharacterBase::EquipWeapon(UABItemData* InItemData)
 
 void AABCharacterBase::ReadScroll(UABItemData* InItemData)
 {
-	UE_LOG(LogABCharacter, Log, TEXT("Read Scroll"));
+	//UE_LOG(LogABCharacter, Log, TEXT("Read Scroll"));
+
+	// 아이템 수집 처리를 위한 형변환.
+	UABScrollItemData* ScrollItemData = Cast<UABScrollItemData>(InItemData);
+	if (ScrollItemData)
+	{
+		Stat->AddBaseStat(ScrollItemData->BaseStat);
+	}
 }
 
 int32 AABCharacterBase::GetLevel() const
@@ -515,4 +533,14 @@ int32 AABCharacterBase::GetLevel() const
 void AABCharacterBase::SetLevel(int32 InNewLevel)
 {
 	Stat->SetLevelStat(InNewLevel);
+}
+
+void AABCharacterBase::ApplyStat(
+	const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat)
+{
+	// 스탯 데이터에서 최종 이동 속력 구하기.
+	float MovementSpeed = (BaseStat + ModifierStat).MovementSpeed;
+
+	// 컴포넌트에 속력 설정.
+	GetCharacterMovement()->MaxWalkSpeed = MovementSpeed;
 }

@@ -12,8 +12,11 @@
  * 
  */
 UCLASS(config=ArenaBattle)
-class ARENABATTLEDEMO_API AABCharacterNonPlayer : public AABCharacterBase, public IABCharacterAIInterface
+class ARENABATTLEDEMO_API AABCharacterNonPlayer : 
+	public AABCharacterBase,
+	public IABCharacterAIInterface
 {
+
 	GENERATED_BODY()
 
 public:
@@ -37,20 +40,22 @@ protected:
 	// 배열에 채워진 경로를 활용해 비동기로 애셋을 로드할 때 사용.
 	TSharedPtr<FStreamableHandle> NPCMeshHandle;
 
+	// AI Section.
 protected:
-	//NPC 캐릭터가 필수적으로 구현해야할 함수
+	// IABCharacterAIInterface 인터페이스 함수 구현.
 	virtual float GetAIPatrolRadius() override;
 	virtual float GetAIDetectRange() override;
 	virtual float GetAIAttackRange() override;
 	virtual float GetAITurnSpeed() override;
 
-	// 캐릭터에서 델리게이트를 넘길 때 사용할 함수
-	virtual void SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinised) override;
+	// 캐릭터에서 델리게이트를 넘길 때 사용할 함수.
+	virtual void SetAIAttackDelegeate(
+		const FAICharacterAttackFinished& InOnAttackFinished) override;
 
-	//AI 공격할 때 사용할 함수
+	// AI가 공격을 할 때 사용할 함수.
 	virtual void AttackByAI() override;
 
-	// SetAIAttackDelegate 함수로 전달된 델리게이트를 저장할 함수
+	// SetAIAttackDelegeate 함수로 전달된 델리게이트를 저장할 변수.
 	FAICharacterAttackFinished OnAttackFinished;
 
 	virtual void NotifyComboActionEnd() override;

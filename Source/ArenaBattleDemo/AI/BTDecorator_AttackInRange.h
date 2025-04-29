@@ -13,10 +13,12 @@ UCLASS()
 class ARENABATTLEDEMO_API UBTDecorator_AttackInRange : public UBTDecorator
 {
 	GENERATED_BODY()
+	
 public:
 	UBTDecorator_AttackInRange();
 
 protected:
-	//데코레이터 실행에 필요한 함수
+
+	// 데코레이터 실행에 필요한 함수.
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 };

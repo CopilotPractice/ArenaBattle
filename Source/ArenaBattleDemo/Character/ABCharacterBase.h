@@ -7,6 +7,7 @@
 #include "Interface/ABAnimationAttackInterface.h"
 #include "Interface/ABCharacterWidgetInterface.h"
 #include "Interface/ABCharacterItemInterface.h"
+#include "GameData/ABCharacterStat.h"
 #include "ABCharacterBase.generated.h"
 
 // 로그 카테고리 추가.
@@ -20,7 +21,7 @@ enum class ECharacterControlType : uint8
 };
 
 // 아이템 획득 처리를 위한 델리게이트 선언.
-DECLARE_DELEGATE_OneParam(FOnTakeItemDelegate, class UABItemData* /*InItemData*/)
+DECLARE_DELEGATE_OneParam(FOnTakeItemDelegate, class UABItemData* /*InItemData*/);
 
 // 델리게이트를 다수의 배열(맵)로 관리하기 위한 구조체 선언.
 // 델리게이트 자체를 인자로 사용할 수 없기 때문에 래퍼 구조체 선언이 필요함.
@@ -81,8 +82,8 @@ protected:
 	// 애님 몽타주에서 제공하는 델리게이트와 파라미터 맞춤.
 	void ComboActionEnd(class UAnimMontage* TargetMontage, bool IsProperlyEnded);
 
-	//NPC가 공격이 끝나는 지점을 알 수 있도록 함수 추가
-	virtual void NotifyComboActionEnd(); // 
+	// NPC가 공격이 끝나는 지점을 알 수 있도록 함수 추가.
+	virtual void NotifyComboActionEnd();
 
 	// 콤보 타이머 설정 함수.
 	void SetComboCheckTimer();
@@ -164,4 +165,8 @@ public:
 	// 레벨 Getter/Setter.
 	int32 GetLevel() const;
 	void SetLevel(int32 InNewLevel);
+
+	// 스탯이 변경되면 델리게이트에 연결해 실행할 함수.
+	void ApplyStat(
+		const FABCharacterStat& BaseStat, const FABCharacterStat& ModifierStat);
 };

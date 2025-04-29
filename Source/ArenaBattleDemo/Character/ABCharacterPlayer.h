@@ -5,13 +5,16 @@
 #include "CoreMinimal.h"
 #include "Character/ABCharacterBase.h"
 #include "InputActionValue.h"
+#include "Interface/ABCharacterHUDInterface.h"
 #include "ABCharacterPlayer.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class ARENABATTLEDEMO_API AABCharacterPlayer : public AABCharacterBase
+class ARENABATTLEDEMO_API AABCharacterPlayer 
+	: public AABCharacterBase,
+	public IABCharacterHUDInterface
 {
 	GENERATED_BODY()
 
@@ -19,6 +22,9 @@ public:
 	AABCharacterPlayer();
 
 	virtual void BeginPlay() override;
+
+	// 플레이어가 죽었을 때 처리를 위한 함수.
+	virtual void SetDead() override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -64,4 +70,10 @@ protected:
 
 	// ���� ��� ���� ĳ���� ���.
 	ECharacterControlType CurrentCharacterControlType;
+
+	// UI Section.
+protected:
+
+	// IABCharacterHUDInterface 함수 구현.
+	virtual void SetupHUDWidget(class UABHUDWidget* InHUDWidget) override;
 };

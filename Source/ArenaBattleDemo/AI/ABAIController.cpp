@@ -7,17 +7,17 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "ABAI.h"
 
-
 AABAIController::AABAIController()
 {
-	// 애셋 로드
-	// 블랙 보드 애셋
+	// 애셋 로드.
+	// 블랙 보드 애셋.
 	static ConstructorHelpers::FObjectFinder<UBlackboardData> BBAssetRef(TEXT("/Game/ArenaBattle/AI/BB_ABCharacter.BB_ABCharacter"));
 	if (BBAssetRef.Object)
 	{
 		BBAsset = BBAssetRef.Object;
 	}
 
+	// 행동 트리 애셋.
 	static ConstructorHelpers::FObjectFinder<UBehaviorTree> BTAssetRef(TEXT("/Game/ArenaBattle/AI/BT_ABCharacter.BT_ABCharacter"));
 	if (BTAssetRef.Object)
 	{
@@ -27,31 +27,29 @@ AABAIController::AABAIController()
 
 void AABAIController::RunAI()
 {
-	// 블랙보드 컴포넌트 포인터 가져오기
+	// 블랙보드 컴포넌트 포인터 가져오기.
 	UBlackboardComponent* BlackboardPtr = Blackboard.Get();
 
-
-	// 사용할 블랙보드 지정
-	if(UseBlackboard(BBAsset, BlackboardPtr))
-	{ 
-
-		//시작할 때 NPC의 위치를 블랙보드에 HomePos에 저장
+	// 사용할 블랙보드 지정.
+	if (UseBlackboard(BBAsset, BlackboardPtr))
+	{
+		// 시작할 때 NPC의 위치를 블랙보드에 HomePos에 저장.
 		Blackboard->SetValueAsVector(BBKEY_HOMEPOS, GetPawn()->GetActorLocation());
+		
+		// 행동 트리 실행.
+		bool RunResult = RunBehaviorTree(BTAsset);
 
-		//행동 트리 실행
-		bool RunResult = RunBehaviorTree(BTAsset); // 비헤이비어트리 컴포넌트가 동작
-
-		//실패하면 확인
+		// 실행에 실패하면 확인.
 		ensure(RunResult);
 	}
 }
 
 void AABAIController::StopAI()
 {
-	// 실행 중인 BehaviorTreeComponent 가져오기
+	// 중지를 위해 실행 중인 BehaviorTreeComponent 가져오기.
 	UBehaviorTreeComponent* BTComponent = Cast<UBehaviorTreeComponent>(BrainComponent);
 
-	// BT 중지
+	// BT 중지.
 	if (BTComponent)
 	{
 		BTComponent->StopTree();
@@ -62,6 +60,6 @@ void AABAIController::OnPossess(APawn* InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	//컨트롤러가 폰에 빙의하면 AI 실행
+	// 컨트롤러가 폰에 빙의하면 AI를 실행.
 	RunAI();
 }

@@ -13,31 +13,29 @@ UCLASS()
 class ARENABATTLEDEMO_API AABAIController : public AAIController
 {
 	GENERATED_BODY()
-
+	
 public:
 	AABAIController();
-	
-	//AI 실행하는 함수
+
+	// AI 실행하는 함수.
 	void RunAI();
 
-	//중지
+	// AI 중지하는 함수.
 	void StopAI();
 
 protected:
 
-	// 컨트롤러가 폰에 빙의했을 때 실행되는 함수
+	// 컨트롤러가 폰에 빙의했을 때 실행되는 이벤트 함수.
 	virtual void OnPossess(APawn* InPawn) override;
 
-	//Data Section
+	// Data Section.
 private:
-	// Blackboard 애셋
+
+	// Blackboard 애셋.
 	UPROPERTY()
 	TObjectPtr<class UBlackboardData> BBAsset;
 
-	//BT 에셋
+	// Behavior Tree 애셋.
 	UPROPERTY()
 	TObjectPtr<class UBehaviorTree> BTAsset;
-
-	//호출 시점
-	//  맵생성 -> 월드 생성 -> 레벨 생성 -> 엑터 생성 -> (게임 모드 확인)
 };

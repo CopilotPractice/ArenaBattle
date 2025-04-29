@@ -13,8 +13,11 @@ UCLASS()
 class ARENABATTLEDEMO_API UBTTask_FindPatrolPos : public UBTTaskNode
 {
 	GENERATED_BODY()
-	
+
 public:
 	UBTTask_FindPatrolPos();
-	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
+	
+	// 태스크가 실행될 때 호출되는 함수.
+	virtual EBTNodeResult::Type ExecuteTask(
+		UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };
