@@ -4,6 +4,7 @@
 #include "Character/ABCharacterNonPlayer.h"
 #include "Engine/AssetManager.h"
 #include "AI//ABAIController.h"
+#include "CharacterStat/ABCharacterStatComponent.h"
 
 AABCharacterNonPlayer::AABCharacterNonPlayer()
 {
@@ -82,4 +83,45 @@ void AABCharacterNonPlayer::NPCMeshLoadCompleted()
 
 	// 애셋 로드에 사용했던 핸들 해제.
 	NPCMeshHandle->ReleaseHandle();
+}
+
+float AABCharacterNonPlayer::GetAIPatrolRadius()
+{
+	return 800.0f; // 775정도 되는데, 탐지 거리가 중심원이기 때문에, 사각형인 바닥에 구석에 사각지대가 생기기 때문에 좀 더 크게
+}
+
+float AABCharacterNonPlayer::GetAIDetectRange()
+{
+	return 400.0f; // 4m 정도 시야
+}
+
+float AABCharacterNonPlayer::GetAIAttackRange()
+{
+	//공격범위 판정시 캡슐
+	return Stat->GetTotalStat().AttackRange + Stat->GetAttackRadius() * 2;
+}
+
+float AABCharacterNonPlayer::GetAITurnSpeed()
+{
+	return 2.0f;
+}
+
+void AABCharacterNonPlayer::SetAIAttackDelegate(const FAICharacterAttackFinished& InOnAttackFinised)
+{
+	OnAttackFinished = InOnAttackFinised;
+
+}
+
+void AABCharacterNonPlayer::AttackByAI()
+{
+	// 공격 진행을 위한 콤보 실행 함수 호출
+	ProcessComboCommand();
+	
+}
+
+void AABCharacterNonPlayer::NotifyComboActionEnd()
+{
+	Super::NotifyComboActionEnd(); // 비어 있어서 사실 super키워드 필요없긴함
+
+	OnAttackFinished.ExecuteIfBound();
 }

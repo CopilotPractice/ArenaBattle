@@ -28,7 +28,7 @@ AABCharacterBase::AABCharacterBase()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제.
+	//// 컨트롤러의 회전을 받아서 설정하는 모드를 모두 해제.
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
@@ -202,7 +202,8 @@ void AABCharacterBase::AttackHitCheck()
 	);
 
 	// 트레이스에 사용할 구체의 반지름.
-	const float AttackRadius = 50.0f;
+	//const float AttackRadius = 50.0f;
+	const float AttackRadius = Stat->GetAttackRadius();
 
 	// 트레이스를 활용해 충돌 검사.
 	FHitResult OutHitResult;
@@ -351,6 +352,13 @@ void AABCharacterBase::ComboActionEnd(UAnimMontage* TargetMontage, bool IsProper
 
 	// 캐릭터 무브먼트 컴포넌트 모드 복구.
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+
+	//공격이 끝나면 NotifyComboActionEnd() 함수 호출
+	NotifyComboActionEnd(); //현재 클래스에서는 구현 안 되어있지만, override하면 기능추가 가능
+}
+
+void AABCharacterBase::NotifyComboActionEnd()
+{
 }
 
 void AABCharacterBase::SetComboCheckTimer()
